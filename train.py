@@ -6,6 +6,7 @@ import re
 import random
 import time
 import sys
+import math
 
 import torch
 import torch.nn as nn
@@ -21,28 +22,42 @@ SOS_TOKEN=0
 EOS_TOKEN=1
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
+
+def timeSince(since, percent):
+    now = time.time()
+    s = now - since
+    es = s / (percent)
+    rs = es - s
+    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+
+
 def indexes_from_sentence(vocab, sentence):
     """Transforms a sentence to a word embedding using the given Vocabulary"""
     return [vocab.word2index[word] for word in sentence.split()]
 
 
-def tensor_from_sentence(vocab, sentence):
+def tensor_from_sentence(vocab, sentence, pad=False):
     """Transform a sentence to a tensor using the given Vocabulary"""
     indexes = indexes_from_sentence(vocab, sentence)
     indexes.append(vocab.EOS)
+    if pad:
+        input_length = len(indexes)
+        if input_length < MAX_LENGTH:
+            padding = [SOS_TOKEN]*(MAX_LENGTH-input_length)
+            indexes = padding + indexes
     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
 
 
 def tensors_from_pair(vocab, pair):
     """Transform an input and output sentence to tensors using the given Vocabulary"""
-    input_tensor = tensor_from_sentence(vocab, pair[0])
-    input_length = input_tensor.size()[0]
-    if input_length < MAX_LENGTH:
-        input_tensor
-        padding = MAX_LENGTH-input_length
-        input_tensor = F.pad(input_tensor, (padding, 0), "constant", SOS_TOKEN)
-
-    target_tensor = tensor_from_sentence(vocab, pair[1])
+    input_tensor = tensor_from_sentence(vocab, pair[1], pad=True)
+    target_tensor = tensor_from_sentence(vocab, pair[0])
     return (input_tensor, target_tensor)
 
 
@@ -123,11 +138,12 @@ def main():
     input_file = sys.argv[1]
     vocab = build.build_vocabulary(input_file)
     pairs = [tensors_from_pair(vocab, x.split("\t")) for x in open(input_file)]
+    pairs = [(x,y) for x, y in pairs if x.size(0) <= MAX_LENGTH]
 
     hidden_size = 256
     encoder1 = EncoderRNN(vocab.n_words, hidden_size).to(device)
     attn_decoder1 = AttnDecoderRNN(hidden_size, vocab.n_words, dropout_p=0.1).to(device)
-    train_iter(pairs, encoder1, attn_decoder1, 75000, print_every=5000)
+    train_iter(pairs, encoder1, attn_decoder1, 75000, print_every=2)
 
 
 if __name__ == "__main__":

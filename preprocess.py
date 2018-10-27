@@ -23,13 +23,7 @@ def filter_instance(instance):
     title, article = instance.split("\t")
     title_words = title.split()
     article_words = article.split()
-    if any((word == "" for word in title_words)):
-        return True
-
-    if any((word == "" for word in article_words)):
-        return True
-
-    if not any((word == "." for word in article_words)):
+    if any((word in ("", ".", "") for word in article_words)):
         return True
 
     if not (10 < len(article_words) < 100 and 3 < len(title_words) < 50):
@@ -52,7 +46,12 @@ def remove_digits(text):
     return re.sub(r'\d', '#', text)
 
 def parse(text):
-    return " ".join(TOKENIZER.tokenize(text.lower()))
+    words = TOKENIZER.tokenize(text.lower())
+    # token filter defined according to pull.py from namas
+    filter_ = {'"', "'", "''", "!", "=", "-", "--", ",", "?",
+               ".", "``", "`", "-rrb-", "-llb-", "\\/"}
+    filtered = [w for w in words if w not in filter_]
+    return " ".join(filtered)
 
 def prepare_data_first_sentence(in_file):
     """

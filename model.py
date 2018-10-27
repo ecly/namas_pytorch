@@ -7,7 +7,7 @@ from torch import optim
 import torch.nn.functional as F
 import torch
 
-MAX_LENGTH=10
+MAX_LENGTH=50
 #BoW dimension
 D2 = 200
 # Window
