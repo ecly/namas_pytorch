@@ -61,38 +61,39 @@ def tensors_from_pair(vocab, pair):
     return (input_tensor, target_tensor)
 
 
+def print_loss(pair_amount, loss, iter, iterations, start):
+    print('Time: %s, Iteration: %d,  Avg loss: %.4f' % (timeSince(start, iter / iterations), iter, loss))
+
+
 def train_iter(pairs, encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
-    plot_losses = []
     print_loss_total = 0  # Reset every print_every
-    plot_loss_total = 0  # Reset every plot_every
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
     criterion = nn.NLLLoss()
+    pair_amount = len(pairs)
 
-    for iter in range(1, n_iters + 1):
-        training_pair = pairs[iter - 1]
+    for iter in range(n_iters):
+        training_pair = pairs[iter % pair_amount]
         input_tensor = training_pair[0]
         target_tensor = training_pair[1]
 
         loss = train(input_tensor, target_tensor, encoder,
                      decoder, encoder_optimizer, decoder_optimizer, criterion, MAX_LENGTH)
         print_loss_total += loss
-        plot_loss_total += loss
+
+        if iter == 0:
+            continue
+
+        if iter % pair_amount == 0:
+            print('Epoch #%d' % int(iter/pair_amount))
 
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
+            print_loss(pair_amount, print_loss_avg, iter, n_iters, start)
             print_loss_total = 0
-            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
-                                         iter, iter / n_iters * 100, print_loss_avg))
 
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
-
-    showPlot(plot_losses)
 
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, max_length):
@@ -143,7 +144,7 @@ def main():
     hidden_size = 256
     encoder1 = EncoderRNN(vocab.n_words, hidden_size).to(device)
     attn_decoder1 = AttnDecoderRNN(hidden_size, vocab.n_words, dropout_p=0.1).to(device)
-    train_iter(pairs, encoder1, attn_decoder1, 75000, print_every=2)
+    train_iter(pairs, encoder1, attn_decoder1, 75000, print_every=100)
 
 
 if __name__ == "__main__":
