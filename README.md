@@ -1,5 +1,5 @@
 # namas_pytorch
-
+A dirty namas pytorch re-implementation, partially as an introduction to summarization in pytorch.
 
 - Download and extract [Newsroom Dataset](https://github.com/clic-lab/newsroom)
 - Preprocess the extracted data `python preprocess.py dev.dataset dev_parsed.data`
